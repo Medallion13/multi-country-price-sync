@@ -1,0 +1,44 @@
+# Repo metadata
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Python virtual envs and caches
+.venv/
+.uv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Docker volumes
+postgres_data/
+prefect_data/
+
+# Environment files (never bake secrets into images)
+.env
+.env.local
+.env.production
+
+# Documentation that doesn't belong in images
+docs/
+*.md
+!README.md
+
+# Test data
+tests/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
