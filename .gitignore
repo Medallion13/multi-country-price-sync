@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+.uv/
+
+# Distribution
+build/
+dist/
+*.egg-info/
+
+# Environments — never commit real secrets
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Testing & linting caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker / data volumes
+postgres_data/
+prefect_data/
+
+# Logs
+*.log
+
+# Alembic
+migrations/__pycache__/
+
+# Caches
+.cache/
