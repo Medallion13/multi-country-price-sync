@@ -38,6 +38,7 @@ services:
       # Prefect server uses asyncpg to talk to Postgres.
       PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       POSTGRES_HOST: postgres
+      PREFECT_RESULTS_PERSIST_BY_DEFAULT: "true"
     volumes:
       - prefect_data:/data/prefect
     ports:
