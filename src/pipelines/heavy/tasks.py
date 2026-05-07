@@ -42,54 +42,59 @@ def load_day_window(report_date: date) -> dict[str, pd.DataFrame]:
     logger = _logger()
 
     with get_engine().connect() as conn:
+        _snap_rows = conn.execute(
+            text(
+                """
+                SELECT ps.store_id, ps.sku, ps.local_price::float AS local_price,
+                       ps.stock_status, ps.captured_at
+                FROM app.price_snapshots ps
+                WHERE DATE(ps.captured_at AT TIME ZONE 'UTC') = :report_date
+                ORDER BY ps.captured_at
+                """
+            ),
+            {"report_date": report_date},
+        ).mappings().all()
         snapshots = pd.DataFrame(
-            conn.execute(
-                text(
-                    """
-                    SELECT ps.store_id, ps.sku, ps.local_price::float AS local_price,
-                           ps.stock_status, ps.captured_at
-                    FROM app.price_snapshots ps
-                    WHERE DATE(ps.captured_at AT TIME ZONE 'UTC') = :report_date
-                    ORDER BY ps.captured_at
-                    """
-                ),
-                {"report_date": report_date},
-            ).mappings().all()
+            _snap_rows,
+            columns=["store_id", "sku", "local_price", "stock_status", "captured_at"],
+        ) if _snap_rows else pd.DataFrame(
+            columns=["store_id", "sku", "local_price", "stock_status", "captured_at"]
         )
 
+        _fx_rows = conn.execute(
+            text(
+                """
+                SELECT base_currency, quote_currency, rate::float AS rate, captured_at
+                FROM app.fx_rates
+                WHERE DATE(captured_at AT TIME ZONE 'UTC') = :report_date
+                ORDER BY captured_at
+                """
+            ),
+            {"report_date": report_date},
+        ).mappings().all()
         fx = pd.DataFrame(
-            conn.execute(
-                text(
-                    """
-                    SELECT base_currency, quote_currency, rate::float AS rate, captured_at
-                    FROM app.fx_rates
-                    WHERE DATE(captured_at AT TIME ZONE 'UTC') = :report_date
-                    ORDER BY captured_at
-                    """
-                ),
-                {"report_date": report_date},
-            ).mappings().all()
+            _fx_rows,
+            columns=["base_currency", "quote_currency", "rate", "captured_at"],
+        ) if _fx_rows else pd.DataFrame(
+            columns=["base_currency", "quote_currency", "rate", "captured_at"]
         )
 
+        _prod_rows = conn.execute(
+            text(
+                "SELECT sku, canonical_price_usd::float AS canonical_price_usd"
+                " FROM app.products WHERE is_active = true"
+            )
+        ).mappings().all()
         products = pd.DataFrame(
-            conn.execute(
-                text(
-                    """
-                    SELECT sku, canonical_price_usd::float AS canonical_price_usd
-                    FROM app.products
-                    WHERE is_active = true
-                    """
-                )
-            ).mappings().all()
-        )
+            _prod_rows, columns=["sku", "canonical_price_usd"]
+        ) if _prod_rows else pd.DataFrame(columns=["sku", "canonical_price_usd"])
 
+        _store_rows = conn.execute(
+            text("SELECT store_id, country, currency FROM app.stores WHERE is_active = true")
+        ).mappings().all()
         stores = pd.DataFrame(
-            conn.execute(
-                text(
-                    "SELECT store_id, country, currency FROM app.stores WHERE is_active = true"
-                )
-            ).mappings().all()
-        )
+            _store_rows, columns=["store_id", "country", "currency"]
+        ) if _store_rows else pd.DataFrame(columns=["store_id", "country", "currency"])
 
     logger.info(
         "Loaded day=%s: %d snapshots, %d fx rows, %d products, %d stores",
