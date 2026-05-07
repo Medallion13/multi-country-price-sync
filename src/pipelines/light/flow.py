@@ -29,12 +29,15 @@ async def light_price_sync() -> None:
     logger = get_run_logger()
     logger.info("Light pipeline starting for stores: %s", ", ".join(STORE_IDS))
 
-    # Fan out
-    fx_task = asyncio.create_task(fetch_fx_rates())
-    store_results: list[StoreFetchResult] = await asyncio.gather(
-        *[fetch_store_prices(store_id=s) for s in STORE_IDS]
+    # Fan out — all four coroutines run concurrently.
+    # asyncio.gather (not create_task) lets Prefect register task inputs
+    # correctly, which is required for the INPUTS cache policy to work.
+    fx_result, *store_results_raw = await asyncio.gather(
+        fetch_fx_rates(),
+        *[fetch_store_prices(store_id=s) for s in STORE_IDS],
     )
-    fx_result: FXFetchResult = await fx_task
+    fx_result: FXFetchResult = fx_result
+    store_results: list[StoreFetchResult] = list(store_results_raw)
 
     # Drift check must run before snapshot upsert
     events = quick_drift_check(store_results)

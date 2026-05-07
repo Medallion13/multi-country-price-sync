@@ -15,7 +15,7 @@ from typing import Any
 
 import httpx
 from prefect import get_run_logger, task
-from prefect.cache_policies import INPUTS
+from prefect.cache_policies import INPUTS, TASK_SOURCE
 from sqlalchemy import text
 from src.shared.config import get_settings
 from src.shared.db import db_session
@@ -30,13 +30,13 @@ from src.shared.schemas import (
 )
 
 CACHE_TTL = timedelta(minutes=14)
-QUOTE_CURRENCIES: tuple[str, ...] = ("CLP", "MXM", "COP")
+QUOTE_CURRENCIES: tuple[str, ...] = ("CLP", "MXN", "COP")
 
 
 # Fetch tasks (async, cached)
 @task(
     name="fetch_fx_rates",
-    cache_policy=INPUTS,
+    cache_policy=TASK_SOURCE,
     cache_expiration=CACHE_TTL,
     retries=2,
     retry_delay_seconds=[2, 5],
