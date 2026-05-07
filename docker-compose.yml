@@ -71,6 +71,37 @@ services:
       timeout: 5s
       retries: 3
 
+  prefect-worker-light:
+    build:
+      context: .
+      dockerfile: docker/prefect-base.Dockerfile
+    container_name: prefect-worker-light
+    depends_on:
+      prefect-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      FX_API_BASE: ${FX_API_BASE}
+      MOCK_WOOCOMMERCE_BASE: http://mock-woocommerce:8000
+      DRIFT_THRESHOLD_PCT: ${DRIFT_THRESHOLD_PCT:-5.0}
+      HTTP_TIMEOUT_S: ${HTTP_TIMEOUT_S:-10.0}
+      PYTHONPATH: /app
+      PREFECT_RESULTS_PERSIST_BY_DEFAULT: "true"
+    volumes:
+      - ./src:/app/src
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      - ./uv.lock:/app/uv.lock:ro
+    working_dir: /app
+    command: prefect worker start --pool light-pool --name worker-light --type process
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   prefect_data:
