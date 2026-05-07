@@ -164,24 +164,25 @@ def validate_response_health(
 ) -> None:
     """Persist per-fetch latency and status code into ``api_health_log``."""
     logger = get_run_logger()
-    rows: list[dict[str, Any]] = []
-    for r in store_results:
-        rows.append(
-            {
-                "store_id": r.store_id,
-                "status_code": r.status_code,
-                "latency_ms": r.latency_ms,
-                "captured_at": r.captured_at,
-            }
-        )
-    rows.append(
+    # api_health_log.store_id has a FK to stores — only real store_ids can be inserted.
+    # FX provider health is logged here instead of persisted.
+    rows: list[dict[str, Any]] = [
         {
-            "store_id": "fx-provider",
-            "status_code": fx_result.status_code,
-            "latency_ms": fx_result.latency_ms,
-            "captured_at": fx_result.captured_at,
+            "store_id": r.store_id,
+            "status_code": r.status_code,
+            "latency_ms": r.latency_ms,
+            "captured_at": r.captured_at,
         }
+        for r in store_results
+    ]
+    logger.info(
+        "FX provider health: status=%d latency=%dms",
+        fx_result.status_code,
+        fx_result.latency_ms,
     )
+
+    if not rows:
+        return
 
     stmt = text(
         """
@@ -193,7 +194,7 @@ def validate_response_health(
     )
     with db_session() as session:
         session.execute(stmt, rows)
-    logger.info("Persisted %d health rows", len(rows))
+    logger.info("Persisted %d store health rows", len(rows))
 
 
 # Drift detection
