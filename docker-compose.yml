@@ -102,6 +102,29 @@ services:
     command: prefect worker start --pool light-pool --name worker-light --type process
     restart: unless-stopped
 
+  # Worker for the Docker work pool.
+  # Spawns pricesync/heavy:latest containers on-demand for heavy flow runs.
+  # Requires the heavy image to be pre-built:
+  #   docker build -t pricesync/heavy:latest -f docker/heavy.Dockerfile .
+  prefect-worker-heavy:
+    image: pricesync/prefect-base:latest
+    build:
+      context: .
+      dockerfile: docker/prefect-base.Dockerfile
+    container_name: prefect-worker-heavy
+    depends_on:
+      prefect-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+      PREFECT_RESULTS_PERSIST_BY_DEFAULT: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: prefect worker start --pool heavy-pool --name worker-heavy --type docker
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   prefect_data:

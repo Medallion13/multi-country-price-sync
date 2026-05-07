@@ -4,7 +4,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     UV_LINK_MODE=copy \
-    UV_COMPILE_BYTECODE=1
+    UV_COMPILE_BYTECODE=1 \
+    PYTHONPATH=/app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -12,17 +13,17 @@ RUN apt-get update \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv from the official distroless image.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
-# Dependencies
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+# Dependencies first (layer-cached until lockfile changes)
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-dev --extra heavy --no-install-project
 
-# Make the venv binaries (prefect, python, etc.) the default on PATH.
 ENV PATH="/app/.venv/bin:${PATH}"
 
-# Sanity default
+# Bake source into the image so Prefect can import flows without volume mounts
+COPY src/ ./src/
+
 CMD ["python", "--version"]
