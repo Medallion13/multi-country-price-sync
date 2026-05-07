@@ -49,6 +49,7 @@ def main() -> None:
         push=False,
         build=False,
         job_variables={
+            "image_pull_policy": "Never",
             "networks": [COMPOSE_NETWORK],
             "env": {
                 "PREFECT_API_URL": "http://prefect-server:4200/api",
